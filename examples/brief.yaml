@@ -1,0 +1,31 @@
+# Example campaign brief. Brand and products are fictional.
+campaign_id: brisa-summer-launch
+region: Mexico & US Hispanic market
+audience: Active adults 21-35 who want low-sugar refreshment
+message: Real fruit. Zero sugar. All summer.
+
+locales: [en-US, es-MX, ja-JP]
+translations:
+  es-MX: Fruta real. Cero azúcar. Todo el verano.
+  ja-JP: 本物の果実。砂糖ゼロ。夏じゅうずっと。
+
+brand:
+  name: Brisa
+  primary_color: "#0B3D2E"     # deep green band
+  secondary_color: "#F4F1E8"   # warm white text
+  logo: brisa_logo.png
+
+products:
+  - id: citrus-spark
+    name: Brisa Citrus Spark
+    description: Sparkling lime and grapefruit water in a slim green aluminium can.
+    # an existing hero is in assets/ -> it is REUSED, not regenerated
+  - id: mango-chili
+    name: Brisa Mango Chili
+    description: Sparkling mango water with a hint of chili, orange can, condensation drops.
+    # no asset on disk -> it is GENERATED, then saved back for reuse
+
+aspect_ratios: ["1:1", "9:16", "16:9"]
+
+# Extra words legal wants flagged for this market (added to the defaults).
+prohibited_terms: [healthiest, detox]

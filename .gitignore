@@ -1,0 +1,7 @@
+__pycache__/
+*.pyc
+.venv/
+outputs/
+examples/assets/*_generated.png
+.env
+.pytest_cache/
