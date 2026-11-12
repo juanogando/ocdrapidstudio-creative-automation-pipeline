@@ -11,7 +11,7 @@ One command produces **18 finished creatives in under a second** (2 products × 
 ## Quick start
 
 ```bash
-git clone <this repo> && cd creative-automation-pipeline
+git clone https://github.com/juanogando/ocdrapidstudio-creative-automation-pipeline && cd ocdrapidstudio-creative-automation-pipeline
 python -m venv .venv && source .venv/bin/activate      # Windows: .venv\Scripts\activate
 pip install -r requirements.txt
 
