@@ -55,9 +55,14 @@ def _font(size: int, script: str, fonts: dict | None = None) -> ImageFont.FreeTy
     preferred = [f for f in ((fonts or {}).get(script), (fonts or {}).get("latin")) if f]
     for cand in preferred + FONT_CANDIDATES[script] + FONT_CANDIDATES["latin"]:
         try:
-            return ImageFont.truetype(cand, size)
+            font = ImageFont.truetype(cand, size)
         except OSError:
             continue
+        try:  # variable fonts default to their lightest weight; headlines want Bold
+            font.set_variation_by_name("Bold")
+        except Exception:
+            pass
+        return font
     return ImageFont.load_default(size=size)
 
 
