@@ -7,6 +7,10 @@ Lookup order for each product:
 
 Step 3 saving back is deliberate: the next run (or the next market) reuses it
 instead of paying to generate again. That is the "reuse when available" rule.
+
+PROPRIETARY BOUNDARY: this POC generates a hero from a text prompt. In OCD
+RAPID STUDIO, generation and product fidelity run through a proprietary
+workflow that is not included in, or described by, this repository.
 """
 from __future__ import annotations
 

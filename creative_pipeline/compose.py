@@ -6,6 +6,10 @@ Layout rules (kept simple and explicit so they are easy to defend):
   * the message sits in a brand-colour band inside a safe zone, so platform UI
     (Stories bars, captions) does not cover it
   * text auto-shrinks and wraps until it fits the band
+
+PROPRIETARY BOUNDARY: geometric crops and fixed layout rules are a public POC
+method. OCD RAPID STUDIO uses proprietary layout and production tools that
+are not included in, or described by, this repository.
 """
 from __future__ import annotations
 

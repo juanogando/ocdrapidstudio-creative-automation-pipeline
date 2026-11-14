@@ -3,6 +3,10 @@
 Output layout:
   outputs/<campaign_id>/<product_id>/<ratio>/<locale>.jpg
   outputs/<campaign_id>/report.json  and  report.md
+
+PROPRIETARY BOUNDARY: this orchestration is a standalone POC for the Adobe
+assessment. KIKO GROUND CONTROL, OCD RAPID STUDIO's proprietary automation
+and approval system, is not included in, or described by, this repository.
 """
 from __future__ import annotations
 

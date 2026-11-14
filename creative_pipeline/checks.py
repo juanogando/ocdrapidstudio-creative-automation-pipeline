@@ -2,6 +2,10 @@
 
 These are guardrails, not a replacement for human review: they catch the
 cheap, common mistakes before a regional approver ever sees the file.
+
+PROPRIETARY BOUNDARY: these are simple public checks written for this POC.
+Product-accuracy verification in OCD RAPID STUDIO is done by proprietary
+tools that are not included in, or described by, this repository.
 """
 from __future__ import annotations
 

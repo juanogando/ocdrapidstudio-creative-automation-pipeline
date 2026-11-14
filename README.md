@@ -6,6 +6,8 @@ One command produces **18 finished creatives in under a second** (2 products × 
 
 > **How this was built.** I build with an AI-accelerated process: I direct the architecture and decisions, and Claude (Anthropic) writes and refactors code with me. My Obsidian notes keep the design record. I review every module and can walk through any line of it. This repo is a working example of that process. See [How this was built](#how-this-was-built) below. — Juan Ogando
 
+> **Scope and proprietary boundary.** This repository is a standalone proof of concept written for the Adobe Forward Deployed AI Engineer assessment. It does **not** contain OCD RAPID STUDIO, KIKO GROUND CONTROL, OCD SPECS, or any of Ogando Creative Design's proprietary tools, proprietary workflow, proprietary product-accuracy verification, or client assets. Where this POC uses a simple public method, the production equivalent is proprietary and is not published here. Those points are marked `PROPRIETARY BOUNDARY` in the code.
+
 ---
 
 ## Quick start
@@ -122,3 +124,7 @@ I built this with my standard working method, which is the method I'd bring to A
 4. **I understand and defend the code line by line.** In the interview I'm happy to walk through any module, change it live, or extend it (a Firefly or ComfyUI provider, per-locale legal lists, saliency cropping).
 
 The point for a Forward Deployed role is speed with judgment. A client brief became a tested, documented, working pipeline in an afternoon, and every trade-off is written down.
+
+## Copyright
+
+© 2026 Juan Ogando / Ogando Creative Design LLC. All rights reserved. Published for evaluation as part of the Adobe assessment. No license is granted for reuse. OCD RAPID STUDIO, KIKO GROUND CONTROL and OCD SPECS are proprietary and are not part of this repository.
