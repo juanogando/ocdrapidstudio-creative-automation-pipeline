@@ -54,3 +54,13 @@ def test_legal_flags_whole_words_only():
 
 def test_contrast_ratio():
     assert round(checks.contrast_ratio((0, 0, 0), (255, 255, 255))) == 21
+
+
+def test_glyph_check_catches_tofu():
+    from PIL import ImageFont
+    try:
+        latin = ImageFont.truetype("DejaVuSans-Bold.ttf", 40)
+    except OSError:
+        pytest.skip("DejaVu font not installed")
+    assert checks.check_glyphs(latin, "Real fruit. Zero sugar.").passed
+    assert not checks.check_glyphs(latin, "本物の果実").passed

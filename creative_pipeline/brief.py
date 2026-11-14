@@ -31,6 +31,8 @@ class Brand:
     primary_color: str = "#111111"   # hex, used for the message band
     secondary_color: str = "#FFFFFF" # hex, used for message text
     logo: str | None = None          # file in the assets folder
+    font: str | None = None          # brand typeface (.ttf/.otf), path or file in the assets folder
+    font_cjk: str | None = None      # typeface for Japanese/Chinese/Korean markets
 
 
 @dataclass

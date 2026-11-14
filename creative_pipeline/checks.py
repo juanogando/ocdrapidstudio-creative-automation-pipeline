@@ -8,7 +8,7 @@ from __future__ import annotations
 import re
 from dataclasses import dataclass
 
-from PIL import Image
+from PIL import Image, ImageDraw
 
 from .compose import Layout, hex_to_rgb
 
@@ -56,6 +56,26 @@ def check_brand_color(img: Image.Image, layout: Layout, brand_hex: str, tol: int
 def check_contrast(band_hex: str, text_hex: str, minimum: float = 4.5) -> CheckResult:
     ratio = contrast_ratio(hex_to_rgb(band_hex), hex_to_rgb(text_hex))
     return CheckResult("text_contrast", ratio >= minimum, f"{ratio:.1f}:1 (WCAG AA needs {minimum}:1)")
+
+
+def _render(font, ch: str) -> bytes:
+    size = getattr(font, "size", 40)
+    img = Image.new("L", (size * 2, size * 2), 0)
+    ImageDraw.Draw(img).text((0, 0), ch, font=font, fill=255)
+    return img.tobytes()
+
+
+def check_glyphs(font, text: str) -> CheckResult:
+    """Catch 'tofu': characters the chosen font cannot draw (e.g. Japanese with a Latin-only font).
+
+    Each character is rendered and compared with the font's own missing-glyph box.
+    """
+    if font is None or not hasattr(font, "getbbox"):
+        return CheckResult("glyph_coverage", True, "no font to check (skipped)")
+    notdef = _render(font, "\U0010fffd")   # a private-use code point no font draws
+    missing = sorted({ch for ch in text if not ch.isspace() and _render(font, ch) == notdef})
+    return CheckResult("glyph_coverage", not missing,
+                       f"font is missing {len(missing)} character(s): {''.join(missing[:12])}" if missing else "all characters render")
 
 
 def check_legal(message: str, prohibited: list[str] | None = None) -> CheckResult:

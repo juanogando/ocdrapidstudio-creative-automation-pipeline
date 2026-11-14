@@ -22,7 +22,7 @@ python -m creative_pipeline examples/brief.yaml --provider mock
 export OPENAI_API_KEY=sk-...                           # Windows: set OPENAI_API_KEY=sk-...
 python -m creative_pipeline examples/brief.yaml        # 'auto' picks openai when a key exists
 
-pytest -q                                              # 4 tests, offline
+pytest -q                                              # 5 tests, offline
 ```
 
 Options: `--assets DIR` (default `<brief dir>/assets`), `--out DIR` (default `outputs`), `--provider auto|openai|mock`, `--manual-minutes N` (the assumption behind the time-saved metric), `-q`.
@@ -89,7 +89,7 @@ brief.yaml ──► brief.py (validate) ──► assets.py ──► compose.p
 | `providers/` | `ImageProvider` interface. `OpenAIProvider` (gpt-image-2 by default, over plain HTTP), `MockProvider` (offline, deterministic) |
 | `assets.py` | Find an existing hero (explicit file → `<product_id>*` in assets), else build a prompt from the brief and generate |
 | `compose.py` | Cover-crop to each ratio, brand-colour message band in a platform safe zone, auto-fit and wrapped text, logo |
-| `checks.py` | Logo present, band matches brand colour, WCAG text contrast ≥ 4.5:1, prohibited-term scan |
+| `checks.py` | Logo present, band matches brand colour, WCAG text contrast ≥ 4.5:1, every character renders in the chosen font (no "tofu" boxes), prohibited-term scan |
 | `pipeline.py` | Orchestrates product × locale × ratio, writes `report.json` / `report.md`, computes metrics |
 | `cli.py` | Command-line interface |
 
@@ -99,7 +99,7 @@ brief.yaml ──► brief.py (validate) ──► assets.py ──► compose.p
 2. **Generate once, crop many.** Each product gets one large square hero, and every ratio and locale is composed from it. Costs scale with *products*, not products × ratios × locales. Generated heroes are saved back into the assets folder, so the next run or market reuses them.
 3. **An offline mock provider by default without a key.** Reviewers can run the whole pipeline with no account, no cost and no network. The output is deterministic, so tests are stable.
 4. **Layout rules per format, not one template.** Feed (1:1) gets a bottom band. Stories (9:16) keep ~14% clear at top and bottom for platform UI. Landscape (16:9) puts the product left and the message in a side panel, because cropping a square hero to 16:9 would cut the product.
-5. **Text that fits any language.** Font size shrinks until the wrapped message fits its band. CJK wraps by character with a basic rule that stops punctuation like `。` starting a line, and falls back to a CJK font.
+5. **Text that fits any language.** Font size shrinks until the wrapped message fits its band. CJK wraps by character with a basic rule that stops punctuation like `。` starting a line. The brief can name brand typefaces (`brand.font`, `brand.font_cjk`); otherwise system fonts are used. If a market's characters are missing from the font, the glyph check flags the creative instead of shipping empty boxes. This check exists because an early test render of the Japanese posts came out as boxes on a machine with no Japanese font.
 6. **Checks flag, they don't block.** A failed check still renders the file but lists it under "Flagged for review". That keeps approvers in the loop on judgment calls (pain point 3) without stopping the batch.
 7. **Metrics from the business goals.** The report counts creatives produced, heroes reused vs generated, and run time, and estimates designer-minutes saved against an explicit, overridable assumption (`--manual-minutes`, default 20).
 

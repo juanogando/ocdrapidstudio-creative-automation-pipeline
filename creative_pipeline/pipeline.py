@@ -62,6 +62,20 @@ class RunReport:
         }
 
 
+def resolve_fonts(brief: Brief, assets_dir: Path) -> dict:
+    """Brand typefaces from the brief: a path, or a file name in the assets folder."""
+    out = {}
+    if brief.brand:
+        for key, val in (("latin", brief.brand.font), ("cjk", brief.brand.font_cjk)):
+            if val:
+                p = Path(val) if Path(val).is_absolute() else assets_dir / val
+                if p.exists():
+                    out[key] = str(p)
+                else:
+                    log.warning("brand font %s not found, using system fallback", val)
+    return out
+
+
 def run(brief: Brief, assets_dir: Path, out_dir: Path, provider: ImageProvider,
         manual_minutes: int = DEFAULT_MANUAL_MINUTES) -> RunReport:
     start = time.perf_counter()
@@ -70,6 +84,7 @@ def run(brief: Brief, assets_dir: Path, out_dir: Path, provider: ImageProvider,
     logo = load_logo(brief, assets_dir)
     band = brief.brand.primary_color if brief.brand else "#111111"
     text = brief.brand.secondary_color if brief.brand else "#FFFFFF"
+    fonts = resolve_fonts(brief, assets_dir)
 
     for product in brief.products:
         hero = resolve_hero(brief, product, assets_dir, provider)
@@ -80,12 +95,13 @@ def run(brief: Brief, assets_dir: Path, out_dir: Path, provider: ImageProvider,
             message = brief.message_for(locale)
             legal = checks.check_legal(message, brief.prohibited_terms + checks.DEFAULT_PROHIBITED)
             for ratio in brief.aspect_ratios:
-                img, layout = compose(hero.image, ratio, message, locale, band, text, logo)
+                img, layout = compose(hero.image, ratio, message, locale, band, text, logo, fonts)
                 path = save(img, campaign_dir / product.id / ratio.replace(":", "x"), f"{locale}.jpg")
                 results = [
                     checks.check_logo(layout, logo_expected=bool(brief.brand and brief.brand.logo)),
                     checks.check_brand_color(img, layout, band),
                     checks.check_contrast(band, text),
+                    checks.check_glyphs(layout.font, message),
                     legal,
                 ]
                 rec = CreativeRecord(product.id, ratio, locale, str(path.relative_to(out_dir)),

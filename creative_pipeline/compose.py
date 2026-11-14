@@ -30,6 +30,7 @@ FONT_CANDIDATES = {
 class Layout:
     band_box: tuple[int, int, int, int]   # x0, y0, x1, y1 of the message band
     logo_box: tuple[int, int, int, int] | None
+    font: object = None                   # font used for the message (checked for missing glyphs)
 
 
 def output_size(ratio: str) -> tuple[int, int]:
@@ -49,8 +50,10 @@ def cover_crop(img: Image.Image, size: tuple[int, int], focus_x: float = 0.5, fo
     return resized.crop((left, top, left + tw, top + th))
 
 
-def _font(size: int, script: str) -> ImageFont.FreeTypeFont:
-    for cand in FONT_CANDIDATES[script] + FONT_CANDIDATES["latin"]:
+def _font(size: int, script: str, fonts: dict | None = None) -> ImageFont.FreeTypeFont:
+    """Brand fonts from the brief win; then system fallbacks for the script."""
+    preferred = [f for f in ((fonts or {}).get(script), (fonts or {}).get("latin")) if f]
+    for cand in preferred + FONT_CANDIDATES[script] + FONT_CANDIDATES["latin"]:
         try:
             return ImageFont.truetype(cand, size)
         except OSError:
@@ -84,15 +87,16 @@ def _wrap(draw: ImageDraw.ImageDraw, text: str, font, max_w: int, cjk: bool) -> 
     return lines
 
 
-def fit_text(draw, text: str, box_w: int, box_h: int, script: str):
+def fit_text(draw, text: str, box_w: int, box_h: int, script: str,
+             fonts: dict | None = None, max_size: int = 110):
     """Largest font size (down to a floor) whose wrapped text fits the box."""
-    for size in range(min(int(box_h * 0.45), 120), 18, -2):
-        font = _font(size, script)
+    for size in range(min(int(box_h * 0.45), max_size), 18, -2):
+        font = _font(size, script, fonts)
         lines = _wrap(draw, text, font, box_w, script == "cjk")
         line_h = int(size * 1.2)
         if len(lines) * line_h <= box_h and all(draw.textlength(l, font=font) <= box_w for l in lines):
             return font, lines, line_h
-    font = _font(18, script)
+    font = _font(18, script, fonts)
     return font, _wrap(draw, text, font, box_w, script == "cjk"), 22
 
 
@@ -102,7 +106,8 @@ def hex_to_rgb(h: str) -> tuple[int, int, int]:
 
 
 def compose(hero: Image.Image, ratio: str, message: str, locale: str,
-            band_color: str, text_color: str, logo: Image.Image | None) -> tuple[Image.Image, Layout]:
+            band_color: str, text_color: str, logo: Image.Image | None,
+            fonts: dict | None = None) -> tuple[Image.Image, Layout]:
     w, h = output_size(ratio)
     margin = int(min(w, h) * 0.05)
     landscape = w > h
@@ -129,7 +134,9 @@ def compose(hero: Image.Image, ratio: str, message: str, locale: str,
     draw = ImageDraw.Draw(canvas)
     pad = margin // 2
     script = _script_for(locale)
-    font, lines, line_h = fit_text(draw, message, band[2] - band[0] - 2 * pad, band[3] - band[1] - 2 * pad, script)
+    # Landscape side panel is tall and narrow: cap the size so headlines don't shout.
+    font, lines, line_h = fit_text(draw, message, band[2] - band[0] - 2 * pad, band[3] - band[1] - 2 * pad,
+                                   script, fonts, max_size=84 if landscape else 110)
     y = band[1] + ((band[3] - band[1]) - len(lines) * line_h) // 2
     for line in lines:
         x = band[0] + ((band[2] - band[0]) - draw.textlength(line, font=font)) // 2
@@ -144,7 +151,7 @@ def compose(hero: Image.Image, ratio: str, message: str, locale: str,
         logo_box = (margin, top, margin + lw, top + lh)
         canvas.alpha_composite(logo.resize((lw, lh), Image.LANCZOS), (margin, top))
 
-    return canvas.convert("RGB"), Layout(band, logo_box)
+    return canvas.convert("RGB"), Layout(band, logo_box, font)
 
 
 def save(img: Image.Image, out_dir: Path, name: str) -> Path:
