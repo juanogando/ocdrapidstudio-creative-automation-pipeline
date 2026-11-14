@@ -1,4 +1,4 @@
-"""OpenAI Images API provider (gpt-image-1).
+"""OpenAI Images API provider (gpt-image-2; override with OPENAI_IMAGE_MODEL).
 
 Plain HTTP via `requests` instead of the SDK: one less dependency, and the
 request/response is easy to read in an interview.
@@ -24,12 +24,12 @@ class OpenAIProvider(ImageProvider):
         self.api_key = api_key or os.environ.get("OPENAI_API_KEY")
         if not self.api_key:
             raise RuntimeError("OPENAI_API_KEY is not set")
-        self.model = model or os.environ.get("OPENAI_IMAGE_MODEL", "gpt-image-1")
+        self.model = model or os.environ.get("OPENAI_IMAGE_MODEL", "gpt-image-2")
         self.timeout = timeout
 
     @staticmethod
     def _closest_size(size: tuple[int, int]) -> str:
-        # gpt-image-1 accepts three sizes; pick the one nearest the target shape.
+        # gpt-image models accept these three sizes; pick the one nearest the target shape.
         w, h = size
         if abs(w - h) / max(w, h) < 0.15:
             return "1024x1024"

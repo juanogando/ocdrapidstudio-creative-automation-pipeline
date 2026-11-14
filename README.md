@@ -18,7 +18,7 @@ pip install -r requirements.txt
 # Offline: no API key, no cost, deterministic placeholder heroes
 python -m creative_pipeline examples/brief.yaml --provider mock
 
-# Live GenAI: OpenAI gpt-image-1 generates any missing hero
+# Live GenAI: OpenAI gpt-image-2 generates any missing hero (gpt-image-1 was retired 2026-10-23)
 export OPENAI_API_KEY=sk-...                           # Windows: set OPENAI_API_KEY=sk-...
 python -m creative_pipeline examples/brief.yaml        # 'auto' picks openai when a key exists
 
@@ -86,7 +86,7 @@ brief.yaml ──► brief.py (validate) ──► assets.py ──► compose.p
 | Module | Responsibility |
 |---|---|
 | `brief.py` | Load YAML/JSON and validate once (≥2 products, required fields, ratio format) into dataclasses |
-| `providers/` | `ImageProvider` interface. `OpenAIProvider` (gpt-image-1 over plain HTTP), `MockProvider` (offline, deterministic) |
+| `providers/` | `ImageProvider` interface. `OpenAIProvider` (gpt-image-2 by default, over plain HTTP), `MockProvider` (offline, deterministic) |
 | `assets.py` | Find an existing hero (explicit file → `<product_id>*` in assets), else build a prompt from the brief and generate |
 | `compose.py` | Cover-crop to each ratio, brand-colour message band in a platform safe zone, auto-fit and wrapped text, logo |
 | `checks.py` | Logo present, band matches brand colour, WCAG text contrast ≥ 4.5:1, prohibited-term scan |
