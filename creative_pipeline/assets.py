@@ -23,7 +23,7 @@ from .brief import Brief, Product
 from .providers import ImageProvider
 
 IMAGE_EXTS = (".png", ".jpg", ".jpeg", ".webp")
-HERO_SIZE = (1536, 1536)  # large square master; every ratio is cropped from it
+HERO_SIZE = (1536, 1536)  # large square master; every ratio is fit from it whole (never cropped by default)
 
 
 @dataclass

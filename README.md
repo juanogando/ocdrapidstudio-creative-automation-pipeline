@@ -2,7 +2,7 @@
 
 A local command-line tool that turns one campaign brief into a full set of localized social ad creatives: every product × every market language × every aspect ratio. It runs brand and legal checks on each one and writes a report.
 
-One command produces **18 finished creatives in under a second** (2 products × 3 locales × 3 ratios) with the offline generator. With a live GenAI model, the time is mostly the image calls, and each new hero is generated **once** and then reused.
+One command produces **18 finished creatives in about two seconds** (2 products × 3 locales × 3 ratios) with the offline generator. With a live GenAI model, the time is mostly the image calls, and each new hero is generated **once** and then reused.
 
 > **How this was built.** I build with an AI-accelerated process: I direct the architecture and decisions, and Claude (Anthropic) writes and refactors code with me. My Obsidian notes keep the design record. I review every module and can walk through any line of it. This repo is a working example of that process. See [How this was built](#how-this-was-built) below. — Juan Ogando
 
@@ -72,7 +72,7 @@ citrus-spark   hero reused (citrus-spark_hero.png)
   ...
 mango-chili    hero generated (mango-chili_hero_generated.png)
   ...
-18 creatives in 0.8s | heroes reused 1, generated 1 | flagged 0 | ~360.0 designer-minutes saved
+18 creatives in 1.8s | heroes reused 1, generated 1 | flagged 0 | ~360.0 designer-minutes saved
 ```
 
 Change the message to `Guaranteed detox. Zero sugar.` and the report flags the six English creatives (`legal_terms: ['detox', 'guaranteed']`) for review instead of passing them.
