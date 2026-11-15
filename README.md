@@ -77,6 +77,20 @@ mango-chili    hero generated (mango-chili_hero_generated.png)
 
 Change the message to `Guaranteed detox. Zero sugar.` and the report flags the six English creatives (`legal_terms: ['detox', 'guaranteed']`) for review instead of passing them.
 
+## Second example: eyewear
+
+`examples/eyewear/` is the campaign shown in the walkthrough video: a fictional eyewear brand, **Solano**, with two frames (Court Sport, a black sport wrap, and Coastline Aviator, a gold aviator) for the US, Mexico and Japan.
+
+```bash
+python -m creative_pipeline examples/eyewear/brief.yaml --provider mock          # 18 creatives, flagged 0
+python -m creative_pipeline examples/eyewear/brief_legal.yaml --provider mock --out outputs_legal   # flagged 6
+```
+
+* `court-sport_hero.png` is a supplied product shot, so it is reused.
+* `coastline-aviator_hero_generated.png` was generated with GPT Image 2.6 from the exact prompt `assets.build_prompt()` writes for this brief, then saved back, so every run reuses it instead of paying to generate it again.
+* The brief's `prohibited_terms` show legal blocks for the category: other brands' names (`Ray-Ban`), designs too close to other brands (`Wayfarer`), materials that can't be used (`genuine tortoiseshell`) and celebrity references (`as worn by`). `brief_legal.yaml` is the same brief with a message that breaks all four, and the run flags the six English creatives. These are word checks on the copy; they do not compare images.
+* Eyewear is never cropped: every frame is shown whole in 1:1, 9:16 and 16:9 (`hero_fit: contain`, the default).
+
 ## How it works
 
 ```
