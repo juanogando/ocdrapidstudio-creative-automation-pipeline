@@ -99,7 +99,8 @@ def run(brief: Brief, assets_dir: Path, out_dir: Path, provider: ImageProvider,
             message = brief.message_for(locale)
             legal = checks.check_legal(message, brief.prohibited_terms + checks.DEFAULT_PROHIBITED)
             for ratio in brief.aspect_ratios:
-                img, layout = compose(hero.image, ratio, message, locale, band, text, logo, fonts)
+                img, layout = compose(hero.image, ratio, message, locale, band, text, logo, fonts,
+                                      fit=brief.hero_fit)
                 path = save(img, campaign_dir / product.id / ratio.replace(":", "x"), f"{locale}.jpg")
                 results = [
                     checks.check_logo(layout, logo_expected=bool(brief.brand and brief.brand.logo)),

@@ -2,7 +2,9 @@
 
 Layout rules (kept simple and explicit so they are easy to defend):
   * output sizes are the social-platform standards for each ratio
-  * crop = "cover" (fill the frame, trim the overflow), centred on the subject
+  * the product is never cropped by default: the hero is fit whole ("contain") into
+    the space above the message band, on a background matched to the photo's edges.
+    "cover" (fill the frame, trim the overflow) is used only when the brief asks for it
   * the message sits in a brand-colour band inside a safe zone, so platform UI
     (Stories bars, captions) does not cover it
   * text auto-shrinks and wraps until it fits the band
@@ -16,7 +18,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from pathlib import Path
 
-from PIL import Image, ImageDraw, ImageFont
+from PIL import Image, ImageDraw, ImageFilter, ImageFont
 
 from .brief import parse_ratio
 
@@ -35,6 +37,7 @@ class Layout:
     band_box: tuple[int, int, int, int]   # x0, y0, x1, y1 of the message band
     logo_box: tuple[int, int, int, int] | None
     font: object = None                   # font used for the message (checked for missing glyphs)
+    hero_box: tuple[int, int, int, int] | None = None  # where the whole product image was placed
 
 
 def output_size(ratio: str) -> tuple[int, int]:
@@ -52,6 +55,54 @@ def cover_crop(img: Image.Image, size: tuple[int, int], focus_x: float = 0.5, fo
     left = int((resized.width - tw) * focus_x)
     top = int((resized.height - th) * focus_y)
     return resized.crop((left, top, left + tw, top + th))
+
+
+def contain_fit(canvas: Image.Image, img: Image.Image, area: tuple[int, int, int, int],
+                box: tuple[int, int, int, int]) -> tuple[int, int, int, int]:
+    """Scale the WHOLE image to fit inside `box` (no cropping) and paste it centred, untouched.
+
+    The rest of `area` is filled by extending the photo's own outer edge (its studio backdrop)
+    outwards and softening it, so the backdrop continues seamlessly. The product pixels are never
+    blended, faded or cut. Returns the box the image actually occupies.
+    """
+    x0, y0, x1, y1 = box
+    ax0, ay0, ax1, ay1 = area
+    scale = min((x1 - x0) / img.width, (y1 - y0) / img.height)
+    w, h = max(1, round(img.width * scale)), max(1, round(img.height * scale))
+    left, top = x0 + ((x1 - x0) - w) // 2, y0 + ((y1 - y0) - h) // 2
+    fitted = img.convert("RGB").resize((w, h), Image.LANCZOS)
+
+    # Backdrop: stretch the photo's 1-pixel outer rows/columns out to the edges of the area.
+    aw, ah = ax1 - ax0, ay1 - ay0
+    back = Image.new("RGB", (aw, ah))
+    px, py = left - ax0, top - ay0                      # photo position inside the area
+    edge = max(2, min(w, h) // 200)                     # average a few pixels to avoid streaks
+    top_row = fitted.crop((0, 0, w, edge)).resize((w, 1), Image.BOX)
+    bot_row = fitted.crop((0, h - edge, w, h)).resize((w, 1), Image.BOX)
+    l_col = fitted.crop((0, 0, edge, h)).resize((1, h), Image.BOX)
+    r_col = fitted.crop((w - edge, 0, w, h)).resize((1, h), Image.BOX)
+    back.paste(fitted, (px, py))
+    if py > 0:
+        back.paste(top_row.resize((w, py)), (px, 0))
+    if ah - (py + h) > 0:
+        back.paste(bot_row.resize((w, ah - py - h)), (px, py + h))
+    full_col_l = Image.new("RGB", (1, ah))
+    full_col_l.paste(top_row.crop((0, 0, 1, 1)).resize((1, max(1, py))), (0, 0))
+    full_col_l.paste(l_col, (0, py))
+    full_col_l.paste(bot_row.crop((0, 0, 1, 1)).resize((1, max(1, ah - py - h))), (0, py + h))
+    full_col_r = Image.new("RGB", (1, ah))
+    full_col_r.paste(top_row.crop((w - 1, 0, w, 1)).resize((1, max(1, py))), (0, 0))
+    full_col_r.paste(r_col, (0, py))
+    full_col_r.paste(bot_row.crop((w - 1, 0, w, 1)).resize((1, max(1, ah - py - h))), (0, py + h))
+    if px > 0:
+        back.paste(full_col_l.resize((px, ah)), (0, 0))
+    if aw - (px + w) > 0:
+        back.paste(full_col_r.resize((aw - px - w, ah)), (px + w, 0))
+    back = back.filter(ImageFilter.GaussianBlur(max(4, min(w, h) // 40)))   # soften the stretch
+
+    canvas.paste(back, (ax0, ay0))
+    canvas.paste(fitted, (left, top))                    # the product image itself, unaltered
+    return (left, top, left + w, top + h)
 
 
 def _font(size: int, script: str, fonts: dict | None = None) -> ImageFont.FreeTypeFont:
@@ -116,24 +167,43 @@ def hex_to_rgb(h: str) -> tuple[int, int, int]:
 
 def compose(hero: Image.Image, ratio: str, message: str, locale: str,
             band_color: str, text_color: str, logo: Image.Image | None,
-            fonts: dict | None = None) -> tuple[Image.Image, Layout]:
+            fonts: dict | None = None, fit: str = "contain") -> tuple[Image.Image, Layout]:
     w, h = output_size(ratio)
     margin = int(min(w, h) * 0.05)
     landscape = w > h
 
+    # Logo size and position are known up front so the product can be placed clear of it.
+    logo_w = logo_h = 0
+    logo_top = int(h * 0.14) if ratio == "9:16" else margin
+    if logo is not None:
+        logo_w = int(w * (0.26 if ratio == "9:16" else 0.18))
+        logo_h = round(logo.height * logo_w / logo.width)
+
+    hero_box = None
     if landscape:
-        # Wide formats: a square-ish hero cannot fill the width without losing the
-        # product, so place the product on the left and the message in a side panel.
+        # Wide formats: the product goes on the left, the message in a side panel on the right.
         hero_w = int(w * 0.58)
         canvas = Image.new("RGBA", (w, h), hex_to_rgb(band_color) + (255,))
-        canvas.paste(cover_crop(hero, (hero_w, h)), (0, 0))
+        if fit == "cover":
+            canvas.paste(cover_crop(hero, (hero_w, h)), (0, 0))
+            hero_box = (0, 0, hero_w, h)
+        else:
+            top = logo_top + logo_h + margin // 2 if logo is not None else margin
+            hero_box = contain_fit(canvas, hero, (0, 0, hero_w, h), (margin, top, hero_w - margin, h - margin))
         band = (hero_w + margin, margin * 3, w - margin, h - margin * 3)
     else:
-        canvas = cover_crop(hero, (w, h)).convert("RGBA")
         # Safe zone: Stories (9:16) keep ~14% clear top and bottom for platform UI.
         bottom_safe = int(h * 0.14) if ratio == "9:16" else margin
         band_h = int(h * (0.18 if ratio == "9:16" else 0.22))
         band = (margin, h - bottom_safe - band_h, w - margin, h - bottom_safe)
+        if fit == "cover":
+            canvas = cover_crop(hero, (w, h)).convert("RGBA")
+            hero_box = (0, 0, w, h)
+        else:
+            # The whole product sits between the logo and the message band: nothing covers it.
+            canvas = Image.new("RGBA", (w, h))
+            top = logo_top + logo_h + margin // 2 if logo is not None else margin
+            hero_box = contain_fit(canvas, hero, (0, 0, w, h), (margin, top, w - margin, band[1] - margin // 2))
 
     overlay = Image.new("RGBA", canvas.size, (0, 0, 0, 0))
     od = ImageDraw.Draw(overlay)
@@ -154,13 +224,10 @@ def compose(hero: Image.Image, ratio: str, message: str, locale: str,
 
     logo_box = None
     if logo is not None:
-        lw = int(w * (0.26 if ratio == "9:16" else 0.18))
-        lh = round(logo.height * lw / logo.width)
-        top = int(h * 0.14) if ratio == "9:16" else margin
-        logo_box = (margin, top, margin + lw, top + lh)
-        canvas.alpha_composite(logo.resize((lw, lh), Image.LANCZOS), (margin, top))
+        logo_box = (margin, logo_top, margin + logo_w, logo_top + logo_h)
+        canvas.alpha_composite(logo.resize((logo_w, logo_h), Image.LANCZOS), (margin, logo_top))
 
-    return canvas.convert("RGB"), Layout(band, logo_box, font)
+    return canvas.convert("RGB"), Layout(band, logo_box, font, hero_box)
 
 
 def save(img: Image.Image, out_dir: Path, name: str) -> Path:
