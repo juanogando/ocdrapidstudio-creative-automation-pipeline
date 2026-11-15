@@ -1,4 +1,4 @@
-"""Composition: crop the hero to each aspect ratio and lay out message + logo.
+"""Composition: fit the hero into each aspect ratio and lay out message + logo.
 
 Layout rules (kept simple and explicit so they are easy to defend):
   * output sizes are the social-platform standards for each ratio
