@@ -1,0 +1,47 @@
+# Legal-check variant of the eyewear brief: the message breaks four of the legal blocks on purpose.
+campaign_id: solano-summer-eyewear
+region: US, Mexico & Japan
+audience: Active adults 25-45 who want sport-ready style
+message: As worn by the stars. Genuine tortoiseshell, Wayfarer style, better than Ray-Ban.
+
+locales: [en-US, es-MX, ja-JP]
+translations:
+  es-MX: Visión clara. Comodidad todo el día.
+  ja-JP: くっきり見える。一日中快適。
+
+brand:
+  name: Solano
+  primary_color: "#13233F"     # deep navy band
+  secondary_color: "#F4F1E8"   # warm white text
+  logo: solano_logo.png
+
+products:
+  - id: court-sport
+    name: Solano Court Sport
+    description: Matte black wraparound sport frame with clear lenses and an adjustable strap.
+    # product shot supplied by the brand -> REUSED
+  - id: coastline-aviator
+    name: Solano Coastline Aviator
+    description: Gold metal aviator sunglasses with gradient amber lenses.
+    # GenAI hero from an earlier run, saved back -> REUSED, not paid for twice
+
+aspect_ratios: ["1:1", "9:16", "16:9"]
+
+# Legal blocks for this category (added to the defaults).
+prohibited_terms:
+  # other brands' names
+  - Ray-Ban
+  - Oakley
+  - Persol
+  # designs too close to other brands' designs
+  - Wayfarer
+  - Clubmaster
+  - Holbrook
+  # materials we can't use
+  - genuine tortoiseshell
+  - ivory
+  - real horn
+  # celebrity likeness or endorsement
+  - as worn by
+  - celebrity
+  - signature edition

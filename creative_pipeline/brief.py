@@ -47,6 +47,9 @@ class Brief:
     brand: Brand | None = None
     aspect_ratios: list[str] = field(default_factory=lambda: ["1:1", "9:16", "16:9"])
     prohibited_terms: list[str] = field(default_factory=list)  # extra legal words to flag
+    # How the product hero fills each format. "contain" (default) shows the whole product and
+    # never crops it; "cover" fills the frame and may trim the product. Crop only when directed.
+    hero_fit: str = "contain"
 
     def message_for(self, locale: str) -> str:
         """Localized message if the brief supplies one, otherwise the base message."""
@@ -82,6 +85,10 @@ def parse_brief(data: dict) -> Brief:
 
     brand = Brand(**data["brand"]) if data.get("brand") else None
 
+    hero_fit = data.get("hero_fit", "contain")
+    if hero_fit not in ("contain", "cover"):
+        raise BriefError(f"hero_fit must be 'contain' or 'cover', got '{hero_fit}'")
+
     ratios = data.get("aspect_ratios", ["1:1", "9:16", "16:9"])
     for r in ratios:
         parse_ratio(r)  # raises if malformed
@@ -97,6 +104,7 @@ def parse_brief(data: dict) -> Brief:
         brand=brand,
         aspect_ratios=ratios,
         prohibited_terms=data.get("prohibited_terms", []),
+        hero_fit=hero_fit,
     )
 
 

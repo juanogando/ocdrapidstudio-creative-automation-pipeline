@@ -64,3 +64,15 @@ def test_glyph_check_catches_tofu():
         pytest.skip("DejaVu font not installed")
     assert checks.check_glyphs(latin, "Real fruit. Zero sugar.").passed
     assert not checks.check_glyphs(latin, "本物の果実").passed
+
+
+def test_product_is_never_cropped_by_default():
+    """LAW: never crop the product unless the brief asks for it (hero_fit: cover)."""
+    from creative_pipeline.compose import compose
+    hero = Image.new("RGB", (1500, 700), (230, 230, 230))   # wide product shot, e.g. eyewear
+    for ratio in ("1:1", "9:16", "16:9"):
+        img, layout = compose(hero, ratio, "Clear vision.", "en-US", "#13233F", "#F4F1E8", None)
+        x0, y0, x1, y1 = layout.hero_box
+        assert x0 >= 0 and y0 >= 0 and x1 <= img.width and y1 <= img.height
+        assert abs((x1 - x0) / (y1 - y0) - 1500 / 700) < 0.02    # whole image, same shape
+        assert y1 <= layout.band_box[1] or ratio == "16:9"        # message band never covers it

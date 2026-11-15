@@ -24,7 +24,7 @@ python -m creative_pipeline examples/brief.yaml --provider mock
 export OPENAI_API_KEY=sk-...                           # Windows: set OPENAI_API_KEY=sk-...
 python -m creative_pipeline examples/brief.yaml        # 'auto' picks openai when a key exists
 
-pytest -q                                              # 5 tests, offline
+python -m pytest -q                                    # 6 tests, offline
 ```
 
 Options: `--assets DIR` (default `<brief dir>/assets`), `--out DIR` (default `outputs`), `--provider auto|openai|mock`, `--manual-minutes N` (the assumption behind the time-saved metric), `-q`.
@@ -77,6 +77,20 @@ mango-chili    hero generated (mango-chili_hero_generated.png)
 
 Change the message to `Guaranteed detox. Zero sugar.` and the report flags the six English creatives (`legal_terms: ['detox', 'guaranteed']`) for review instead of passing them.
 
+## Second example: eyewear
+
+`examples/eyewear/` is the campaign shown in the walkthrough video: a fictional eyewear brand, **Solano**, with two frames (Court Sport, a black sport wrap, and Coastline Aviator, a gold aviator) for the US, Mexico and Japan.
+
+```bash
+python -m creative_pipeline examples/eyewear/brief.yaml --provider mock          # 18 creatives, flagged 0
+python -m creative_pipeline examples/eyewear/brief_legal.yaml --provider mock --out outputs_legal   # flagged 6
+```
+
+* `court-sport_hero.png` is a supplied product shot, so it is reused.
+* `coastline-aviator_hero_generated.png` was generated with GPT Image 2.6 from the exact prompt `assets.build_prompt()` writes for this brief, then saved back, so every run reuses it instead of paying to generate it again.
+* The brief's `prohibited_terms` show legal blocks for the category: other brands' names (`Ray-Ban`), designs too close to other brands (`Wayfarer`), materials that can't be used (`genuine tortoiseshell`) and celebrity references (`as worn by`). `brief_legal.yaml` is the same brief with a message that breaks all four, and the run flags the six English creatives. These are word checks on the copy; they do not compare images.
+* Eyewear is never cropped: every frame is shown whole in 1:1, 9:16 and 16:9 (`hero_fit: contain`, the default).
+
 ## How it works
 
 ```
@@ -90,7 +104,7 @@ brief.yaml ──► brief.py (validate) ──► assets.py ──► compose.p
 | `brief.py` | Load YAML/JSON and validate once (≥2 products, required fields, ratio format) into dataclasses |
 | `providers/` | `ImageProvider` interface. `OpenAIProvider` (gpt-image-2 by default, over plain HTTP), `MockProvider` (offline, deterministic) |
 | `assets.py` | Find an existing hero (explicit file → `<product_id>*` in assets), else build a prompt from the brief and generate |
-| `compose.py` | Cover-crop to each ratio, brand-colour message band in a platform safe zone, auto-fit and wrapped text, logo |
+| `compose.py` | Fits the whole product into each ratio (never cropped by default), brand-colour message band in a platform safe zone, auto-fit and wrapped text, logo |
 | `checks.py` | Logo present, band matches brand colour, WCAG text contrast ≥ 4.5:1, every character renders in the chosen font (no "tofu" boxes), prohibited-term scan |
 | `pipeline.py` | Orchestrates product × locale × ratio, writes `report.json` / `report.md`, computes metrics |
 | `cli.py` | Command-line interface |
@@ -98,12 +112,13 @@ brief.yaml ──► brief.py (validate) ──► assets.py ──► compose.p
 ## Key design decisions
 
 1. **Provider interface, not a hard-coded API.** The pipeline talks only to `ImageProvider.generate(prompt, size)`. Firefly, Stability or a local ComfyUI server is one new class. Nothing else changes.
-2. **Generate once, crop many.** Each product gets one large square hero, and every ratio and locale is composed from it. Costs scale with *products*, not products × ratios × locales. Generated heroes are saved back into the assets folder, so the next run or market reuses them.
+2. **Generate once, compose many.** Each product gets one large square hero, and every ratio and locale is composed from it. Costs scale with *products*, not products × ratios × locales. Generated heroes are saved back into the assets folder, so the next run or market reuses them.
 3. **An offline mock provider by default without a key.** Reviewers can run the whole pipeline with no account, no cost and no network. The output is deterministic, so tests are stable.
-4. **Layout rules per format, not one template.** Feed (1:1) gets a bottom band. Stories (9:16) keep ~14% clear at top and bottom for platform UI. Landscape (16:9) puts the product left and the message in a side panel, because cropping a square hero to 16:9 would cut the product.
-5. **Text that fits any language.** Font size shrinks until the wrapped message fits its band. CJK wraps by character with a basic rule that stops punctuation like `。` starting a line. The brief can name brand typefaces (`brand.font`, `brand.font_cjk`); otherwise system fonts are used. If a market's characters are missing from the font, the glyph check flags the creative instead of shipping empty boxes. This check exists because an early test render of the Japanese posts came out as boxes on a machine with no Japanese font.
-6. **Checks flag, they don't block.** A failed check still renders the file but lists it under "Flagged for review". That keeps approvers in the loop on judgment calls (pain point 3) without stopping the batch.
-7. **Metrics from the business goals.** The report counts creatives produced, heroes reused vs generated, and run time, and estimates designer-minutes saved against an explicit, overridable assumption (`--manual-minutes`, default 20).
+4. **The product is never cropped unless the brief says so.** By default (`hero_fit: contain`) the whole product image is fit into the space between the logo and the message band, and the photo's own studio backdrop is extended outwards so the frame stays seamless. The product pixels are never cropped, faded or covered by text. Set `hero_fit: cover` in the brief only when a brand asks for full-bleed crops. A test enforces this.
+5. **Layout rules per format, not one template.** Feed (1:1) gets a bottom band. Stories (9:16) keep ~14% clear at top and bottom for platform UI. Landscape (16:9) puts the product left and the message in a side panel, so the product is never cut.
+6. **Text that fits any language.** Font size shrinks until the wrapped message fits its band. CJK wraps by character with a basic rule that stops punctuation like `。` starting a line. The brief can name brand typefaces (`brand.font`, `brand.font_cjk`); otherwise system fonts are used. If a market's characters are missing from the font, the glyph check flags the creative instead of shipping empty boxes. This check exists because an early test render of the Japanese posts came out as boxes on a machine with no Japanese font.
+7. **Checks flag, they don't block.** A failed check still renders the file but lists it under "Flagged for review". That keeps approvers in the loop on judgment calls (pain point 3) without stopping the batch.
+8. **Metrics from the business goals.** The report counts creatives produced, heroes reused vs generated, and run time, and estimates designer-minutes saved against an explicit, overridable assumption (`--manual-minutes`, default 20).
 
 ## Assumptions and limitations
 
@@ -118,10 +133,10 @@ brief.yaml ──► brief.py (validate) ──► assets.py ──► compose.p
 
 I built this with my standard working method, which is the method I'd bring to Adobe's customers:
 
-1. **I set the architecture and the decisions:** the provider interface, generate-once-crop-many, per-format layout rules, checks that flag rather than block, and the metrics tied to the client's goals.
+1. **I set the architecture and the decisions:** the provider interface, generate-once-compose-many, per-format layout rules, never cropping the product, checks that flag rather than block, and the metrics tied to the client's goals.
 2. **Claude writes and refactors code with me in short loops.** I review every module and run it, and I send back what's wrong. For example, the first 16:9 layout put the message band over the product, and Japanese lines could start with "。". Both were caught on visual review and fixed in `compose.py`.
 3. **Obsidian holds the design record:** decisions, assumptions, open questions. That's where the "Key design decisions" above came from.
-4. **I understand and defend the code line by line.** In the interview I'm happy to walk through any module, change it live, or extend it (a Firefly or ComfyUI provider, per-locale legal lists, saliency cropping).
+4. **I understand and defend the code line by line.** In the interview I'm happy to walk through any module, change it live, or extend it (a Firefly or ComfyUI provider, per-locale legal lists).
 
 The point for a Forward Deployed role is speed with judgment. A client brief became a tested, documented, working pipeline in an afternoon, and every trade-off is written down.
 
